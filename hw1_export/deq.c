@@ -1,3 +1,21 @@
+// deq.c -- double-ended, doubly-linked queue of anonymous data.
+//
+// A queue is a Rep: end pointers ht[Head] and ht[Tail], plus a length.
+// A node's np[Head] points toward the head and np[Tail] toward the
+// tail; a missing neighbor is 0.  Indexing ht[] and np[] by the same
+// End is what makes the ends symmetric: put, ith, get and rem are each
+// written once, in terms of an end e and other(e), and the head and
+// tail entry points differ only in the End they pass.
+//
+// The queue owns its nodes but never the data it is handed; freeing
+// that data is the caller's job, via deq_del()'s map function.
+//
+// A zero queue or a failed malloc() is fatal.  An out-of-range index
+// warns and returns 0.  Data that is simply absent -- get on an empty
+// queue, rem of an unheld datum -- is not an error and returns 0.
+
+#define _GNU_SOURCE             // asprintf(), strdup()
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,10 +41,65 @@ static Rep rep(Deq q) {
   return (Rep)q;
 }
 
-static void put(Rep r, End e, Data d) {}
-static Data ith(Rep r, End e, int i)  { return 0; }
-static Data get(Rep r, End e)         { return 0; }
-static Data rem(Rep r, End e, Data d) { return 0; }
+// the end opposite e
+static End other(End e) { return e==Head ? Tail : Head; }
+
+// Append a node holding d onto end e; len++.
+static void put(Rep r, End e, Data d) {
+  Node n=(Node)malloc(sizeof(*n));
+  if (!n) ERROR("malloc() failed");
+  n->data=d;
+  n->np[e]=0;                   // nothing beyond the new end
+  n->np[other(e)]=r->ht[e];     // the old end node, if any
+  if (r->ht[e])
+    r->ht[e]->np[e]=n;
+  else
+    r->ht[other(e)]=n;          // empty: n is both ends
+  r->ht[e]=n;
+  r->len++;
+}
+
+// Return the data i nodes in from end e, or 0 if i is out of range.
+static Data ith(Rep r, End e, int i) {
+  if (i<0 || i>=r->len) {
+    WARN("index %d out of range [0,%d)",i,r->len);
+    return 0;
+  }
+  Node n=r->ht[e];
+  for ( ; i>0; i--)
+    n=n->np[other(e)];          // step away from end e
+  return n->data;
+}
+
+// Splice n out of r and free it, returning its data; len--.
+static Data unput(Rep r, Node n) {
+  Data d=n->data;
+  for (End e=Head; e<Ends; e++) {
+    Node nb=n->np[e];           // n's neighbor toward end e
+    if (nb)
+      nb->np[other(e)]=n->np[other(e)];
+    else
+      r->ht[e]=n->np[other(e)]; // n was end e
+  }
+  free(n);
+  r->len--;
+  return d;
+}
+
+// Remove the node at end e and return its data, or 0 if empty; len--.
+static Data get(Rep r, End e) {
+  Node n=r->ht[e];
+  return n ? unput(r,n) : 0;
+}
+
+// Remove the node nearest end e whose data == d and return d,
+// or 0 if there is none; len-- iff found.
+static Data rem(Rep r, End e, Data d) {
+  for (Node n=r->ht[e]; n; n=n->np[other(e)])
+    if (n->data==d)
+      return unput(r,n);
+  return 0;
+}
 
 extern Deq deq_new() {
   Rep r=(Rep)malloc(sizeof(*r));

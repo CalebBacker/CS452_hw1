@@ -1,0 +1,72 @@
+./try
+new and empty:
+  pass a new queue is empty
+  pass a new queue prints as nothing: ""
+  pass head_get of empty is 0
+  pass tail_get of empty is 0
+  pass head_rem of empty is 0
+  pass tail_rem of empty is 0
+  (two warnings expected next:)
+deq.c:65: warning: index 0 out of range [0,0)
+  pass head_ith of empty is 0, with a warning
+deq.c:65: warning: index 0 out of range [0,0)
+  pass tail_ith of empty is 0, with a warning
+put:
+  pass head_put onto empty: "b"
+  pass head_put prepends: "a b"
+  pass tail_put appends: "a b c"
+  pass tail_put onto empty: "b"
+  pass puts at both ends interleave: "a b c"
+  pass head_put reverses: "4 3 2 1"
+  pass tail_put preserves: "1 2 3 4"
+ith:
+  pass head_ith(0) is the head
+  pass head_ith counts from the head
+  pass head_ith(len-1) is the tail
+  pass tail_ith(0) is the tail
+  pass tail_ith counts from the tail
+  pass tail_ith(len-1) is the head
+  (four warnings expected next:)
+deq.c:65: warning: index 5 out of range [0,5)
+  pass head_ith past the end is 0
+deq.c:65: warning: index -1 out of range [0,5)
+  pass head_ith of a negative index is 0
+deq.c:65: warning: index 5 out of range [0,5)
+  pass tail_ith past the end is 0
+deq.c:65: warning: index -1 out of range [0,5)
+  pass tail_ith of a negative index is 0
+  pass ith leaves the queue alone: "a b c d e"
+get:
+  pass head_get returns the head
+  pass head_get removes the head: "b c d e"
+  pass tail_get returns the tail
+  pass tail_get removes the tail: "b c d"
+  pass one datum left: "d"
+  pass the last datum comes out either end
+  pass the queue is empty again: ""
+  pass head_get of a drained queue is 0
+  pass a drained queue can be refilled: "z"
+rem:
+  pass head_rem returns what it found
+  pass head_rem removes from the middle: "a b d e"
+  pass head_rem finds the head
+  pass tail_rem finds the tail
+  pass both ends can be remmed away: "b d"
+  pass head_rem of an absent datum is 0
+  pass tail_rem of an absent datum is 0
+  pass a failed rem changes nothing: "b d"
+  pass rem compares by ==, not by value
+  pass head_rem takes the occurrence nearest the head
+  pass tail_rem takes the occurrence nearest the tail
+map and str:
+  pass map visits every datum, head to tail
+  pass str applies its function
+  pass map and str leave the queue alone: "a b c d e"
+  pass map of an empty queue does nothing
+  pass str of an empty queue is empty
+del:
+  pass a queue of heap data: "n0 n1 n2"
+  pass del maps over every datum before freeing
+  pass del of an emptied queue is clean
+
+54 tests, 0 failures

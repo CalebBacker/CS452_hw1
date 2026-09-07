@@ -1,0 +1,78 @@
+Queue<Anon> -- CS 452 HW1
+=========================
+
+Files
+-----
+  deq.h        the given interface; unchanged
+  deq.c        the implementation
+  error.h      the given WARN/ERROR macros; unchanged
+  main.c       the test suite
+  test.out     its output, from "make test"
+  valgrind.out valgrind's report, from "make valgrind"
+  GNUmakefile  this directory's makefile; ../GNUmakefile has the rules
+
+Building
+--------
+  make           builds libdeq.so and links ./try against it
+  make test      runs the test suite; exits 0 iff every test passes
+  make valgrind  runs the test suite under valgrind
+  make clean     removes the built files
+
+Run from this directory: try's rpath is ".", resolved at run time.
+
+Design
+------
+A queue is a pair of end pointers, ht[Head] and ht[Tail], plus a
+length.  Each node holds a pair of neighbor pointers indexed the same
+way: np[Head] points toward the head, np[Tail] toward the tail, and a
+missing neighbor is 0.
+
+Indexing both arrays by the same End is what makes the ends symmetric.
+put, ith, get and rem are each written once, in terms of an end e and
+its opposite other(e); deq_head_xxx() calls the one implementation with
+Head and deq_tail_xxx() calls it with Tail.  unput(), which splices a
+node out for both get and rem, is itself a loop over the two ends, so
+even unlinking is coded once.
+
+The queue owns its nodes and nothing else.  It never copies, inspects,
+or frees the data it is handed; deq_del()'s map function is how a
+caller disposes of data it owns.
+
+Semantics
+---------
+  put   appends onto an end; len++
+  get   removes from an end and returns its data, or 0 if empty; len--
+  ith   returns the data i nodes in from an end, 0-based; len unchanged
+  rem   removes the node nearest an end whose data == d (pointers are
+        compared, not contents) and returns d, or 0 if not found;
+        len-- iff found
+  map   applies f to every datum, head to tail
+  del   maps f (if given) over the data, then frees the queue
+  str   returns a freshly allocated, space-separated rendering; with a
+        function, it is applied to each datum and its result freed;
+        without one, the data are assumed to be strings
+
+Errors
+------
+A zero queue or a failed malloc() cannot be recovered from: ERROR()
+reports it and exits.  An out-of-range index is a recoverable mistake:
+WARN() reports it, naming the index and the legal range, and 0 is
+returned.  Data that is simply absent -- get on an empty queue, rem of
+a datum the queue does not hold -- is a legitimate result rather than
+an error, and returns 0 quietly.
+
+Testing
+-------
+main.c runs 54 tests: the empty queue and its edge cases, puts and gets
+at each end and interleaved, indexing from both ends including
+out-of-range and negative indices, rem from the middle, from each end,
+of an absent datum and of one held twice (showing head_rem and tail_rem
+pick opposite occurrences), map and str with and without a function,
+and del over heap data.  Six warnings on stderr are expected: they are
+the out-of-range tests demonstrating the error messages.
+
+Memory
+------
+Every node is freed by get, rem, or del, and every string deq_str()
+builds is freed by its caller.  "make valgrind" reports no leaks and no
+errors; valgrind.out is that report.
