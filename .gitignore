@@ -1,0 +1,7 @@
+# build products
+*.o
+*.so
+try
+
+# macOS
+.DS_Store
