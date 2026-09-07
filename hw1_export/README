@@ -1,75 +1,85 @@
 Queue<Anon> -- CS 452 HW1
-Caleb Backer, September 2026
+=========================
 
 Files
-  deq.h        given interface, unchanged
-  deq.c        implementation
-  error.h      given WARN/ERROR macros, unchanged
-  main.c       test suite
-  test.out     test output, the results of the run
-  valgrind.out valgrind's report on the same run
-  GNUmakefile  given makefile, which includes ../GNUmakefile
+-----
+  deq.h        the given interface; unchanged
+  deq.c        the implementation
+  error.h      the given WARN/ERROR macros; unchanged
+  main.c       the test suite
+  test.out     its output, from "make run"
+  valgrind.out valgrind's report, from "make valgrind"
+  GNUmakefile  this directory's makefile; ../GNUmakefile has the rules
 
 Building
-This directory's makefile needs the course makefile in its parent
-directory, as the skeleton does.  With it:
+--------
+This directory's makefile needs ../GNUmakefile, the course makefile.
+With it:
 
-  make           build ./deq (deq.o and main.o linked together)
-  make run       build and run the test suite
-  make valgrind  run the test suite under valgrind
-  make clean     remove built files
+  make           builds ./deq, from deq.o and main.o
+  make run       builds and runs the test suite
+  make valgrind  runs the test suite under valgrind
+  make clean     removes the built files
 
-./deq exits 0 iff every test passes.  test.out and valgrind.out were
-produced on onyx by "make run" and "make valgrind".
+./deq exits 0 iff every test passes.
 
 Design
-A queue holds end pointers ht[Head] and ht[Tail] plus a length.  Each
-node holds np[Head] and np[Tail], pointing toward the head and tail; a
-missing neighbor is 0.  Indexing both arrays by the same End is what
-makes the ends symmetric, so put, ith, get and rem are each written
-once in terms of an end e and other(e).  deq_head_xxx() passes Head and
-deq_tail_xxx() passes Tail.  unput(), which unlinks a node for both get
-and rem, is itself a loop over the two ends.
+------
+This queue is a pair of end pointers, ht[Head] and ht[Tail], plus a
+length.  Each node holds a pair of neighbor pointers indexed the same
+way: np[Head] points toward the head, np[Tail] toward the tail, and a
+missing neighbor is 0.
 
-The queue owns its nodes, not the data.  It never copies, inspects, or
-frees a datum; deq_del()'s map function is how the caller frees its own
-data.
+Indexing both arrays by the same End is what makes the ends symmetric.
+put, ith, get and rem are each written once, in terms of an end e and
+its opposite other(e); deq_head_xxx() calls the one implementation with
+Head and deq_tail_xxx() calls it with Tail.  unput(), which splices a
+node out for both get and rem, is itself a loop over the two ends, so
+even unlinking is coded once.
+
+The queue owns its nodes and nothing else.  It never copies, inspects,
+or frees the data it is handed; deq_del()'s map function is how a
+caller disposes of data it owns.
 
 Semantics
-  put  append onto an end; len++
-  get  remove from an end and return its datum, or 0 if empty; len--
-  ith  return the datum i nodes in from an end, 0-based; len unchanged
-  rem  remove the node nearest an end whose datum == d (pointers are
-       compared, not contents) and return d, or 0 if absent; len-- iff
-       found
-  map  apply f to each datum, head to tail
-  del  map f (if given) over the data, then free the queue
-  str  return a freshly allocated, space-separated rendering; f is
-       applied to each datum and its result freed, or the data are
-       taken to be strings if f is 0
+---------
+  put   appends onto an end; len++
+  get   removes from an end and returns its data, or 0 if empty; len--
+  ith   returns the data i nodes in from an end, 0-based; len unchanged
+  rem   removes the node nearest an end whose data == d (pointers are
+        compared, not contents) and returns d, or 0 if not found;
+        len-- iff found
+  map   applies f to every datum, head to tail
+  del   maps f (if given) over the data, then frees the queue
+  str   returns a freshly allocated, space-separated rendering; with a
+        function, it is applied to each datum and its result freed;
+        without one, the data are assumed to be strings
 
 Errors
-A zero queue or a failed malloc() is fatal: ERROR() reports it and
-exits.  An out-of-range index is recoverable, so WARN() reports it and
-0 is returned.  Absent data -- get on an empty queue, rem of a datum
-the queue does not hold -- is a legitimate result, not an error, and
-returns 0 quietly.
+------
+A zero queue or a failed malloc() cannot be recovered from: ERROR()
+reports it and exits.  An out-of-range index is a recoverable mistake:
+WARN() reports it, naming the index and the legal range, and 0 is
+returned.  Data that is simply absent is a legitimate result and returns 0.
 
 Testing
-main.c runs 54 tests covering the empty queue, puts and gets at each
-end, indexing from both ends including bad indices, rem from the middle
-and from each end, rem of an absent datum and of one held twice, map,
-str, and del over heap data.  Six warnings on stderr are expected: they
-are the out-of-range tests, and test.out shows them where they occur.
+-------
+main.c runs 54 tests: the empty queue and its edge cases, puts and gets
+at each end and interleaved, indexing from both ends including
+out-of-range and negative indices, rem from the middle, from each end,
+of an absent datum and of one held twice (showing head_rem and tail_rem
+pick opposite occurrences), map and str with and without a function,
+and del over heap data.  Six warnings on stderr are expected: they are
+the out-of-range tests demonstrating the error messages.
 
 Memory
-Every node is freed by get, rem, or del, and every string from
-deq_str() is freed by its caller.  valgrind reports no leaks and no
-errors: 202 allocations, 202 frees.
+------
+Every node is freed by get, rem, or del, and every string deq_str()
+builds is freed by its caller. "make valgrind" reports no leaks and no
+errors; valgrind.out is that report.
 
-Use of AI
-I used Claude (Anthropic) as an assistant on this assignment: to review
-my implementation against the assignment and rubric, to help word the
-comments and this README, and to run the build, test suite, and
-valgrind on onyx.  The design and the code are my own work, and I
-understand and can explain all of it.
+AI Use
+------
+Claude Code was used to test and format code that I wrote, as well as
+to correct and expand comments where needed. It was also used for tutor
+functionality to refresh concepts (pointers) that I was rusty on.
