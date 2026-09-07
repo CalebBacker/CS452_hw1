@@ -1,40 +1,28 @@
-# Rules shared by all assignments.
-# A subdirectory's GNUmakefile sets prog=<name>, includes this file,
-# and then adds whatever targets are peculiar to it.
-#
-#   make          build ./try, the test driver
-#   make test     build and run the test suite
-#   make valgrind run the test suite under valgrind
-#   make clean    remove everything built
+prog?=$(basename $(notdir $(PWD)))
+objs+=$(addsuffix .o,$(basename $(wildcard *.c *.cc)))
 
-CC     = gcc
-CFLAGS = -std=gnu11 -Wall -Wextra -g -fPIC
+defines+=-D_GNU_SOURCE
+ccflags+=-g -Wall -MMD $(defines)
+ldflags+=-g
 
-# Shared libraries are named differently, and located differently at
-# run time, on Linux (onyx) and macOS.
-UNAME := $(shell uname -s)
-ifeq ($(UNAME),Darwin)
-  SOFLAGS = -dynamiclib -Wl,-install_name,@rpath/lib$(prog).so
-else
-  SOFLAGS = -shared
-endif
+.SUFFIXES:
 
-.PHONY: all test valgrind clean
+%.o: %.c  ; gcc -o $@ -c $< $(ccflags)
+%.i: %.c  ; gcc -o $@ -E $< $(defines)
+%.s: %.c  ; gcc -o $@ -S $< $(defines)
+%.o: %.cc ; g++ -o $@ -c $< $(ccflags)
+%.i: %.cc ; g++ -o $@ -E $< $(defines)
+%.s: %.cc ; g++ -o $@ -S $< $(defines)
 
-all: try
+ld?=gcc
 
-lib$(prog).so: $(prog).o
-	$(CC) $(SOFLAGS) -o $@ $^
+$(prog): $(objs) ; $(ld) -o $@ $^ $(ldflags)
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+.PHONY: clean run valgrind
 
-test: try
-	./try
+clean:: ; rm -f $(prog) *.o *.d *.i try
 
-valgrind: try
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes \
-	         --error-exitcode=1 ./try
+run:      $(prog) ; ./$< $(args)
+valgrind: $(prog) ; $@ --leak-check=full --show-leak-kinds=all ./$< $(args)
 
-clean:
-	rm -f *.o lib$(prog).so try
+sinclude *.d

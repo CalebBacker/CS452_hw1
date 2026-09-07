@@ -1,5 +1,9 @@
-# build products
+# build products (course makefile: prog, objects, depfiles, preprocessed)
+deq
 *.o
+*.d
+*.i
+*.s
 *.so
 try
 

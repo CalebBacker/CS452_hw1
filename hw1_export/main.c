@@ -1,13 +1,16 @@
 // main.c -- test suite for the Queue<Anon> module.
 //
-// Each test names what it expects and prints pass or FAIL; the exit
-// status is 0 iff all pass.  Most data are string literals, so a
-// queue's contents can be checked with deq_str(); test_del() uses heap
-// data instead, to exercise deq_del()'s map function under valgrind.
+// Author: Caleb Backer
+// Class:  CS 452, HW1
+// Date:   September 2026
+//
+// Each test prints pass or FAIL; the exit status is 0 iff all pass.
 // The six warnings on stderr are expected: they are the out-of-range
-// tests demonstrating the module's error messages.
+// tests.
 
-#define _GNU_SOURCE             // asprintf()
+#ifndef _GNU_SOURCE          // the course makefile may define it
+#define _GNU_SOURCE           // asprintf()
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
